@@ -1,5 +1,6 @@
 import { CartItem } from "./CartItem.js";
- 
+import { Money } from "./domain/Money.js"; 
+
 export class Cart {
     private items: CartItem[] = [];
 
@@ -31,4 +32,12 @@ export class Cart {
     public removeItem(cartItem: CartItem) {
         this.items = this.items.filter(item => item.getEan() !== cartItem.getEan());
     }
+
+    // totalPrice(): Money {
+    //     return this.items.reduce(
+    //         (sum, item) =>
+    //             sum.add(item.getPrice().multiply(item.getQuantity())),
+    //         new Money(0)    
+    //     );
+    // }
 }
