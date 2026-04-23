@@ -2,7 +2,7 @@ import { CartItem } from "./CartItem.js";
 import { Money } from "../src/domain/Money.js"; 
 
 export class Cart {
-    private items: CartItem[] = [];
+    items: CartItem[] = [];
 
     constructor(items: CartItem[]) {
         this.items = items;

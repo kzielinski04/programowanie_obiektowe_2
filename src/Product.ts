@@ -1,44 +1,52 @@
 import { Feature } from "./Feature.js";
 import { ShippingFeature } from "./ShippingFeature.js";
+import { ok, fail } from "./shared/Result.js";
+import type { Result } from "./shared/Result.js";
+
+type ProductError =
+    | "INVALID_NAME"
+    | "INVALID_PRICE"
+    | "INVALID_DESCRIPTION"
+    | "INVALID_EAN";
 
 export class Product {
-    private price: number;
-    private description: string;
-    private name: string;
-    private ean: string;
     private features: Feature[] = [];
 
-    constructor(price: number, description: string, name: string, ean: string, features: Feature[] = []) {
-        Product.validateName(name);
-        Product.validatePrice(price);
-        Product.validateDescription(description);
-        Product.validateEan(ean);
-        
-        this.price = price;
-        this.description = description;
-        this.name = name;
-        this.ean = ean;
-        
-        features.forEach(f => this.addFeature(f));
+    private constructor(
+        private price: number,
+        private description: string,
+        private name: string,
+        private ean: string
+    ) {}
+
+    public static isProduct(obj: unknown): obj is Product {
+        return obj instanceof Product;
     }
 
-    public static validateName(name: string) {
-        if (name.length == 0) throw new Error("Invalid name!");
-    }
+    public static create(
+        price: number,
+        description: string,
+        name: string,
+        ean: string,
+        features: Feature[] = []
+    ): Result<Product, ProductError> {
+        if (name.length === 0) return fail("INVALID_NAME");
+        if (price <= 0) return fail("INVALID_PRICE");
+        if (description.length === 0) return fail("INVALID_DESCRIPTION");
 
-    public static validatePrice(price: number) {
-        if (price <= 0) throw new Error("Invalid price!");
-    }
-
-    public static validateDescription(description: string) {
-        if (description.length == 0) throw new Error("Invalid description!");
-    }
-
-    public static validateEan(ean: string) {
-        if (ean.length != 13) throw new Error("Invalid EAN!");
-        for (var chr of ean) {
-            if (!(chr >= '0' && chr <= '9')) throw new Error("Invalid EAN!");
+        if (ean.length !== 13 || !/^\d+$/.test(ean)) {
+            return fail("INVALID_EAN");
         }
+
+        const product = new Product(price, description, name, ean);
+
+        try {
+            features.forEach(f => product.addFeature(f));
+        } catch (e) {
+            throw e;
+        }
+
+        return ok(product);
     }
 
     public getPrice() { return this.price; }
@@ -46,31 +54,37 @@ export class Product {
     public getName() { return this.name; }
     public getEan() { return this.ean; }
 
-    public setPrice(price: number) {
-        Product.validatePrice(price);
+    public setPrice(price: number): Result<void, "INVALID_PRICE"> {
+        if (price <= 0) return fail("INVALID_PRICE");
         this.price = price;
+        return ok(undefined);
     }
 
-    public setDescription(description: string) {
-        Product.validateDescription(description);
+    public setDescription(description: string): Result<void, "INVALID_DESCRIPTION"> {
+        if (description.length === 0) return fail("INVALID_DESCRIPTION");
         this.description = description;
+        return ok(undefined);
     }
 
-    public setName(name: string) {
-        Product.validateName(name);
+    public setName(name: string): Result<void, "INVALID_NAME"> {
+        if (name.length === 0) return fail("INVALID_NAME");
         this.name = name;
+        return ok(undefined);
     }
 
-    public setEan(ean: string) {
-        Product.validateEan(ean);
+    public setEan(ean: string): Result<void, "INVALID_EAN"> {
+        if (ean.length !== 13 || !/^\d+$/.test(ean)) {
+            return fail("INVALID_EAN");
+        }
         this.ean = ean;
+        return ok(undefined);
     }
 
     public getFeatures<T extends Feature>(type: new (...args: any[]) => T): T[] {
         return this.features.filter((f): f is T => f instanceof type);
     }
 
-    public addFeature(feature: Feature) {
+    public addFeature(feature: Feature): void {
         if (feature instanceof ShippingFeature) {
             const hasShipping = this.features.some(f => f instanceof ShippingFeature);
             if (hasShipping) {
