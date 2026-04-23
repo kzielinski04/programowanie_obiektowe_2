@@ -1,34 +1,36 @@
-export class CartItem {
-    item;
-    quantity;
-    constructor(item, quantity) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CartItem = void 0;
+var CartItem = /** @class */ (function () {
+    function CartItem(item, quantity) {
         CartItem.validateQuantity(quantity);
         this.item = item;
         this.quantity = quantity;
     }
-    static validateQuantity(quantity) {
+    CartItem.validateQuantity = function (quantity) {
         if (quantity <= 0) {
             throw new Error("Invalid quantity!");
         }
-    }
-    getQuantity() {
+    };
+    CartItem.prototype.getQuantity = function () {
         return this.quantity;
-    }
-    setQuantity(quantity) {
+    };
+    CartItem.prototype.setQuantity = function (quantity) {
         CartItem.validateQuantity(quantity);
         this.quantity = quantity;
-    }
-    getName() {
+    };
+    CartItem.prototype.getName = function () {
         return this.item.getName();
-    }
-    getDescription() {
+    };
+    CartItem.prototype.getDescription = function () {
         return this.item.getDescription();
-    }
-    getPrice() {
+    };
+    CartItem.prototype.getPrice = function () {
         return this.item.getPrice();
-    }
-    getEan() {
+    };
+    CartItem.prototype.getEan = function () {
         return this.item.getEan();
-    }
-}
-//# sourceMappingURL=CartItem.js.map
+    };
+    return CartItem;
+}());
+exports.CartItem = CartItem;
