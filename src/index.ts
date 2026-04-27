@@ -1,41 +1,50 @@
-import { CartItem } from "./CartItem.js";
-import { Product } from "./Product.js";
-import { CourierShipping } from "./domain/shipping/CourierShipping.js";
-import { ExpressShipping } from "./domain/shipping/ExpressShipping.js";
 import { Cart } from "./Cart.js";
-import { Checkout } from "../src/app/Checkout.js";
-import { Money } from "./domain/Money.js";
+import { Checkout } from "./app/Checkout.js";
+import { InMemoryProductRepository } from "./infra/InMemoryProductRepository.js";
+import { AddToCart } from "./app/AddToCart.js";
+import { RemoveFromCart } from "./app/RemoveFromCart.js";
+import { ClearCart } from "./app/ClearCart.js";
+import { CourierShipping } from "./domain/shipping/CourierShipping.js";
 
 async function main() {
-    const product1 = new Product(10099, "description1", "name1", "1111111111111");
-    const item1 = new CartItem(product1, 1);
-    
-    const product2 = new Product(23329, "description2", "name2", "1111111111112");
-    const item2 = new CartItem(product2, 2);
+    const repo = new InMemoryProductRepository();
+    const cart = new Cart();
 
-    const cart = new Cart([item1, item2]);
-    
-    const totalWeight = cart.getTotalWeight();
-    const cartValue = cart.getTotalPrice();
+    const addToCart = new AddToCart(repo, cart);
+    const removeFromCart = new RemoveFromCart(cart);
+    const clearCart = new ClearCart(cart);
 
-    console.log(`Cart value: ${cartValue.format()}`);
-    console.log(`Total weight: ${totalWeight}kg`);
-
-    try {
-        const checkout = new Checkout(totalWeight, cartValue);
-        
-        const shipping = new ExpressShipping();
-        checkout.setShippingMethod(shipping);
-
-        const finalTotal = checkout.getTotalCost();
-        console.log(`Shipping method: ${checkout.getShippingDetails()}`);
-        console.log(`Total price (with shipping): ${finalTotal.format()}`);
-
-    } catch (error) {
-        if (error instanceof Error) {
-            console.error(`Checkout error: ${error.message}`);
-        }
+    const addResult1 = await addToCart.execute("1111111111111", 2);
+    if (addResult1.success) {
+        console.log("UI: Dodano produkt 1");
+    } else {
+        console.log(`UI Błąd: ${addResult1.error}`);
     }
+
+    const addResult2 = await addToCart.execute("1111111111112", 1);
+    if (addResult2.success) {
+        console.log("UI: Dodano produkt 2");
+    }
+
+    console.log(`Waga całkowita: ${cart.getTotalWeight()}kg`);
+    console.log(`Wartość koszyka: ${cart.getTotalPrice().format()}`);
+
+    const shippingMethod = new CourierShipping();
+    
+    const checkout = new Checkout(cart, shippingMethod);
+
+    const checkoutResult = checkout.execute();
+
+    if (checkoutResult.success) {
+        console.log("--- Podsumowanie Zamówienia ---");
+        console.log(`Metoda wysyłki: ${checkout.getShippingDetails()}`);
+        console.log(`Suma końcowa: ${checkoutResult.data.format()}`);
+    } else {
+        console.log(`UI Błąd zamówienia: ${checkoutResult.error}`);
+    }
+
+    clearCart.execute();
+    console.log("UI: Koszyk wyczyszczony");
 }
 
-main();
+main().catch(err => console.error("Critical Error:", err));
