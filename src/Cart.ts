@@ -23,6 +23,10 @@ export class Cart {
         this.items = this.items.filter(item => item.getEan() !== ean);
     }
 
+    public totalItems(): number {
+        return this.items.reduce((sum, item) => sum + item.getQuantity, 0);
+    }
+
     public clear() {
         this.items = [];
     }
