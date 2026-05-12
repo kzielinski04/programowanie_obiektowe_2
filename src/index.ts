@@ -1,50 +1,58 @@
+// src/index.ts
 import { Cart } from "./Cart.js";
 import { Checkout } from "./app/Checkout.js";
 import { InMemoryProductRepository } from "./infra/InMemoryProductRepository.js";
 import { AddToCart } from "./app/AddToCart.js";
-import { RemoveFromCart } from "./app/RemoveFromCart.js";
 import { ClearCart } from "./app/ClearCart.js";
 import { CourierShipping } from "./domain/shipping/CourierShipping.js";
+import { NotificationService } from "./services/NotificationService.js";
+import { Validator } from "./services/Validator.js";
+import { LoggingService } from "./services/LoggingService.js";
+import { DiscountService } from "./services/DiscountService.js";
 
 async function main() {
     const repo = new InMemoryProductRepository();
     const cart = new Cart();
+    const shipping = new CourierShipping();
+
+    const notifier = new NotificationService();
+    const validator = new Validator();
+    const logger = new LoggingService();
+    const discountService = new DiscountService();
 
     const addToCart = new AddToCart(repo, cart);
-    const removeFromCart = new RemoveFromCart(cart);
     const clearCart = new ClearCart(cart);
 
-    const addResult1 = await addToCart.execute("1111111111111", 2);
-    if (addResult1.success) {
-        console.log("UI: Dodano produkt 1");
-    } else {
-        console.log(`UI Błąd: ${addResult1.error}`);
-    }
+    await addToCart.execute("1111111111111", 2);
+    await addToCart.execute("1111111111112", 1);
 
-    const addResult2 = await addToCart.execute("1111111111112", 1);
-    if (addResult2.success) {
-        console.log("UI: Dodano produkt 2");
-    }
-
-    console.log(`Waga całkowita: ${cart.getTotalWeight()}kg`);
     console.log(`Wartość koszyka: ${cart.getTotalPrice().format()}`);
 
-    const shippingMethod = new CourierShipping();
-    
-    const checkout = new Checkout(cart, shippingMethod);
+    const checkout = new Checkout(
+        shipping,
+        paymentMethod,
+        repo,
+        notifier,
+        validator,
+        logger,
+        discountService
+    );
 
-    const checkoutResult = checkout.execute();
+    const checkoutResult = await checkout.execute(cart);
 
     if (checkoutResult.success) {
-        console.log("--- Podsumowanie Zamówienia ---");
-        console.log(`Metoda wysyłki: ${checkout.getShippingDetails()}`);
-        console.log(`Suma końcowa: ${checkoutResult.data.format()}`);
+        console.log("UI: Zamówienie zakończone sukcesem!");
+        
+        console.log("UI: Klient anulował zamówienie po czasie. Wykonuję zwrot...");
+        const refundResult = await paymentMethod.refund(cart.getTotalPrice());
+        if (refundResult.success) {
+            console.log("UI: Pomyślnie zwrócono środki.");
+        }
     } else {
         console.log(`UI Błąd zamówienia: ${checkoutResult.error}`);
     }
 
     clearCart.execute();
-    console.log("UI: Koszyk wyczyszczony");
 }
 
 main().catch(err => console.error("Critical Error:", err));

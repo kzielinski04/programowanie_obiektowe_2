@@ -1,21 +1,22 @@
+// src/app/Checkout.js
 import type { ShippingMethod } from "../domain/shipping/ShippingMethod.js";
-import { Money } from "../domain/Money.js"
+import { Money } from "../domain/Money.js";
 import type { Result } from "../shared/Result.js";
 import { ok, fail } from "../shared/Result.js";
-import { Cart } from "../Cart.js";
-import type { PaymentService } from "../services/PaymentService.js";
+import type { Cart } from "../Cart.js";
+import type { PaymentMethod } from "../domain/payment/PaymentMethod.js";
 import type { IOrderRepository } from "../services/OrderRepository.js";
-import { NotificationService } from "../services/NotificationService.js";
-import { Validator } from "../services/Validator.js";
-import { LoggingService } from "../services/LoggingService.js";
-import { DiscountService } from "../services/DiscountService.js";
+import type { NotificationService } from "../services/NotificationService.js";
+import type { Validator } from "../services/Validator.js";
+import type { LoggingService } from "../services/LoggingService.js";
+import type { DiscountService } from "../services/DiscountService.js";
 
-type CheckoutError = "EMPTY_CART" | "PAYMENT_FAILED";
+type CheckoutError = "EMPTY_CART" | "PAYMENT_FAILED" | "UNSUPPORTED_CURRENCY";
 
 export class Checkout {
     constructor(
         private readonly shipping: ShippingMethod,
-        private readonly paymentService: PaymentService,
+        private readonly paymentMethod: PaymentMethod,
         private readonly repo: IOrderRepository,
         private readonly notifier: NotificationService,
         private readonly validator: Validator,
@@ -30,39 +31,27 @@ export class Checkout {
 
         const total = cart.getTotalPrice();
 
-        const success = this.paymentService.pay(total);
+        const currentCurrency = (total as any).currency || "PLN"; 
 
-        if (!success) {
+        if (!this.paymentMethod.supportsCurrency(currentCurrency)) {
+            this.logger.log(`Metoda ${this.paymentMethod.name()} nie obsługuje waluty ${currentCurrency}`);
+            return fail("UNSUPPORTED_CURRENCY");
+        }
+
+        const paymentResult = await this.paymentMethod.pay(total);
+
+        if (!paymentResult.success) {
             return fail("PAYMENT_FAILED");
         }
 
         await this.repo.save({
-            items: cart.items, total
+            items: cart.items, 
+            total
         });
 
         this.notifier.send();
 
         return ok(undefined);
-        
-        // if (this.cart.items.length === 0) {
-        //     return fail("EMPTY_CART");
-        // }
-
-        // const totalPrice = this.cart.getTotalPrice();
-        // const totalWeight = this.cart.getTotalWeight();
-
-        // this.shipping.validate(totalWeight);
-
-        // const shippingCost = 
-        //     totalPrice.amount > this.getFreeShippingThreshold().amount
-        //         ? new Money(0)
-        //         : this.shipping.calculate(totalWeight, totalPrice);
-
-        // return ok(totalPrice.add(shippingCost));
-    }
-
-    private getFreeShippingThreshold(): Money {
-        return new Money(50000);
     }
 
     getShippingDetails(): string {
