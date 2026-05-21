@@ -24,7 +24,7 @@ export class Cart {
     }
 
     public totalItems(): number {
-        return this.items.reduce((sum, item) => sum + item.getQuantity, 0);
+        return this.items.reduce((sum, item) => sum + item.getQuantity(), 0);
     }
 
     public clear() {
