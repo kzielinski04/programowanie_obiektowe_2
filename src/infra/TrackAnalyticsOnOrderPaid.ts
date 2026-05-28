@@ -1,5 +1,5 @@
-import type { EventHandler } from "../events/EventHandler.js";
-import type { OrderPaidEvent } from "../events/OrderPaidEvent.js";
+import { EventHandler } from "../events/EventHandler.js";
+import { OrderPaidEvent } from "../events/OrderPaidEvent.js";
 
 export class TrackAnalyticsOnOrderPaid implements EventHandler<OrderPaidEvent> {
     async handle(event: OrderPaidEvent): Promise<void> {

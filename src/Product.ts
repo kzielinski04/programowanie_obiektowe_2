@@ -2,6 +2,7 @@ import { Feature } from "./Feature.js";
 import { ShippingFeature } from "./ShippingFeature.js";
 import { ok, fail } from "./shared/Result.js";
 import type { Result } from "./shared/Result.js";
+import { Money } from "./domain/Money.js";
 
 type ProductError =
     | "INVALID_NAME"
@@ -13,32 +14,32 @@ export class Product {
     private features: Feature[] = [];
 
     private constructor(
-        private price: number,
-        private description: string,
-        private name: string,
-        private ean: string
-    ) {}
+        private _price: Money,
+        private _description: string,
+        private _name: string,
+        private _id: string
+    ) { }
 
     public static isProduct(obj: unknown): obj is Product {
         return obj instanceof Product;
     }
 
     public static create(
-        price: number,
-        description: string,
-        name: string,
-        ean: string,
+        _price: Money,
+        _description: string,
+        _name: string,
+        _id: string,
         features: Feature[] = []
     ): Result<Product, ProductError> {
-        if (name.length === 0) return fail("INVALID_NAME");
-        if (price <= 0) return fail("INVALID_PRICE");
-        if (description.length === 0) return fail("INVALID_DESCRIPTION");
+        if (_name.length === 0) return fail("INVALID_NAME");
+        if (_price.amount <= 0) return fail("INVALID_PRICE");
+        if (_description.length === 0) return fail("INVALID_DESCRIPTION");
 
-        if (ean.length !== 13 || !/^\d+$/.test(ean)) {
+        if (_id.length !== 13 || !/^\d+$/.test(_id)) {
             return fail("INVALID_EAN");
         }
 
-        const product = new Product(price, description, name, ean);
+        const product = new Product(_price, _description, _name, _id);
 
         try {
             features.forEach(f => product.addFeature(f));
@@ -49,26 +50,26 @@ export class Product {
         return ok(product);
     }
 
-    public getPrice() { return this.price; }
-    public getDescription() { return this.description; }
-    public getName() { return this.name; }
-    public getEan() { return this.ean; }
+    get price() { return this._price; }
+    get description() { return this._description; }
+    get name() { return this._name; }
+    get id() { return this._id; }
 
-    public setPrice(price: number): Result<void, "INVALID_PRICE"> {
-        if (price <= 0) return fail("INVALID_PRICE");
-        this.price = price;
+    public setPrice(price: Money): Result<void, "INVALID_PRICE"> {
+        if (price.amount <= 0) return fail("INVALID_PRICE");
+        this._price = price;
         return ok(undefined);
     }
 
     public setDescription(description: string): Result<void, "INVALID_DESCRIPTION"> {
         if (description.length === 0) return fail("INVALID_DESCRIPTION");
-        this.description = description;
+        this._description = description;
         return ok(undefined);
     }
 
     public setName(name: string): Result<void, "INVALID_NAME"> {
         if (name.length === 0) return fail("INVALID_NAME");
-        this.name = name;
+        this._name = name;
         return ok(undefined);
     }
 
@@ -76,7 +77,7 @@ export class Product {
         if (ean.length !== 13 || !/^\d+$/.test(ean)) {
             return fail("INVALID_EAN");
         }
-        this.ean = ean;
+        this._id = ean;
         return ok(undefined);
     }
 

@@ -1,4 +1,4 @@
-import type { IOrderRepository } from "../services/OrderRepository.js";
+import type { IOrderRepository } from "../services/OrderRepository";
 
 export class InMemoryOrderRepository implements IOrderRepository {
     async save(order: unknown): Promise<void> {
